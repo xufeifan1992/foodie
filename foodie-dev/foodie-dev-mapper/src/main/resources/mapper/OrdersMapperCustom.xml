@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.imooc.mapper.OrdersMapperCustom">
+
+    <resultMap id="myOrdersVO" type="com.imooc.pojo.vo.MyOrdersVO">
+        <id column="orderId" property="orderId"></id>
+        <result column="createdTime" property="createdTime"></result>
+        <result column="payMethod" property="payMethod"></result>
+        <result column="realPayAmount" property="realPayAmount"></result>
+        <result column="postAmount" property="postAmount"></result>
+        <result column="orderStatus" property="orderStatus"></result>
+        <result column="isComment" property="isComment"></result>
+
+        <collection property="subOrderItemList" select="getSubItems"
+                    column="orderId"
+                    ofType="com.imooc.pojo.vo.MySubOrderItemVO">
+            <result column="itemId" property="itemId"></result>
+            <result column="itemName" property="itemName"></result>
+            <result column="itemImg" property="itemImg"></result>
+            <result column="itemSpecId" property="itemSpecId"></result>
+            <result column="itemSpecName" property="itemSpecName"></result>
+            <result column="buyCounts" property="buyCounts"></result>
+            <result column="price" property="price"></result>
+
+        </collection>
+
+    </resultMap>
+
+    <select id="getSubItems" parameterType="String" resultType="com.imooc.pojo.vo.MySubOrderItemVO">
+        select
+        oi.item_id AS itemId,
+        oi.item_name AS itemName,
+        oi.item_img AS itemImg,
+        oi.item_spec_id AS itemSpecId,
+        oi.item_spec_name AS itemSpecName,
+        oi.buy_counts AS buyCounts,
+        oi.price AS price
+        from
+        order_items oi
+        where order_id = #{orderId}
+
+    </select>
+
+    <select id="queryMyOrders" resultMap="myOrdersVO" parameterType="Map">
+        SELECT
+        od.id AS orderId,
+        od.created_time AS createdTime,
+        od.pay_method AS payMethod ,
+        od.real_pay_amount AS realPayAmount,
+        od.post_amount AS postAmount,
+        os.order_status AS orderStatus,
+        od.is_comment AS isComment
+        -- oi.item_id AS itemId,
+        -- oi.item_name AS itemName,
+        -- oi.item_img AS itemImg,
+        -- oi.item_spec_id AS itemSpecId,
+        -- oi.item_spec_name AS itemSpecName,
+        -- oi.buy_counts AS buyCounts,
+        -- oi.price AS price
+        FROM
+        orders od
+        LEFT JOIN order_status os ON od.id = os.order_id
+        -- LEFT JOIN order_items oi ON od.id = oi.order_id
+        WHERE
+        od.user_id = #{paramsMap.userId}
+        <if test="paramsMap.orderStatus != null">
+            AND os.order_status = #{paramsMap.orderStatus}
+        </if>
+        AND od.is_delete = 0
+        ORDER BY
+        od.updated_time DESC
+
+    </select>
+    <select id="getMyOrderStatusCounts" parameterType="Map" resultType="int">
+        SELECT
+        count( 1 )
+        FROM
+        orders o
+        LEFT JOIN order_status os ON o.id = os.order_id
+        WHERE
+        o.user_id = #{paramsMap.userId}
+        AND os.order_status = #{paramsMap.orderStatus}
+        <if test="paramsMap.isComment != null">
+            and o.is_comment = #{paramsMap.isComment}
+        </if>
+
+    </select>
+
+    <select id="getMyOrderTrend" parameterType="Map" resultType="com.imooc.pojo.OrderStatus">
+        SELECT
+            o.id AS orderId,
+            os.order_status AS orderStatus,
+            os.created_time AS createdTime,
+            os.pay_time AS payTime,
+            os.deliver_time AS deliverTime,
+            os.success_time AS successTime,
+            os.close_time AS closeTime,
+            os.comment_time AS commentTime
+        FROM
+            orders o
+            LEFT JOIN order_status os ON o.id = os.order_id
+        WHERE
+            o.is_delete = 0
+            AND o.user_id = #{paramsMap.userId}
+            AND os.order_status IN ( 20, 30, 40 )
+        ORDER BY
+            os.order_id DESC
+
+    </select>
+
+</mapper>

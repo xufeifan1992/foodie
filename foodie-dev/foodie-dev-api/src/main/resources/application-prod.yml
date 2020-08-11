@@ -1,0 +1,6 @@
+server:
+  port: 80
+spring:
+  datasource:                                                                #数据源相关配置
+    url: jdbc:mysql://192.168.133.129:3306/xufeifan?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true
+    password: 123456
