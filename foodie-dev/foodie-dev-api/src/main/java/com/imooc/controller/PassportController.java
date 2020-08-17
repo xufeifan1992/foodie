@@ -5,6 +5,7 @@ import com.imooc.pojo.bo.ShopcartBO;
 import com.imooc.pojo.bo.UserBO;
 import com.imooc.service.UserService;
 import com.imooc.utils.*;
+import com.sun.org.apache.regexp.internal.RE;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.StringUtils;
@@ -127,6 +128,10 @@ public class PassportController extends BaseController{
                                  HttpServletResponse response) throws Exception {
 
         CookieUtils.deleteCookie(request,response,"user");
+
+        //用户退出登录，需要清空购物车
+        //分布式会话中需要清除用户数据
+        CookieUtils.deleteCookie(request,response,FOODIE_SHOPCART);
 
         return IMOOCJSONResult.ok();
     }
