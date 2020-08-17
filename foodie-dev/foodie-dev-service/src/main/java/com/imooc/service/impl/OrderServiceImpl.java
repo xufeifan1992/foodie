@@ -132,7 +132,6 @@ public class OrderServiceImpl implements OrderService {
         orderStatusMapper.insert(waitPayOrderStatus);
 
 
-
         
 
         //构建商户订单，传给支付中心
