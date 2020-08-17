@@ -6,6 +6,7 @@ import com.imooc.mapper.OrderItemsMapper;
 import com.imooc.mapper.OrderStatusMapper;
 import com.imooc.mapper.OrdersMapper;
 import com.imooc.pojo.*;
+import com.imooc.pojo.bo.ShopcartBO;
 import com.imooc.pojo.bo.SubmitOrderBO;
 import com.imooc.pojo.vo.MerchantOrdersVO;
 import com.imooc.pojo.vo.OrderVO;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -44,7 +46,7 @@ public class OrderServiceImpl implements OrderService {
     private Sid sid;
 
     @Override
-    public OrderVO createOrder(SubmitOrderBO submitOrderBO) {
+    public OrderVO createOrder(SubmitOrderBO submitOrderBO, List<ShopcartBO> shopcartList) {
         String userId = submitOrderBO.getUserId();
         String addressId = submitOrderBO.getAddressId();
         String itemSpecIds = submitOrderBO.getItemSpecIds();
@@ -67,6 +69,7 @@ public class OrderServiceImpl implements OrderService {
         newOrder.setReceiverAddress(userAddress.getProvince() + " " + userAddress.getCity() + " " + userAddress.getDetail());
         newOrder.setPostAmount(post);
         newOrder.setPayMethod(submitOrderBO.getPayMethod());
+        newOrder.setLeftMsg(leftMsg);
         newOrder.setIsComment(YesOrNo.no.type);
         newOrder.setIsDelete(YesOrNo.no.type);
         newOrder.setCreatedTime(new Date());
@@ -77,12 +80,17 @@ public class OrderServiceImpl implements OrderService {
         String[] split = itemSpecIds.split(",");
         Integer totalAmount = 0;
         Integer realPayAmount = 0;
+        List<ShopcartBO> toBeRemovedShopCartList = new ArrayList<>();
         for (String s : split) {
+
+            ShopcartBO shopcart = getBuyCountsFromShopcart(shopcartList, s);
+            toBeRemovedShopCartList.add(shopcart);
+
             //定义购买数量为1
-            Integer buyCounts = 1;
+            Integer buyCounts = shopcart.getBuyCounts();
+
             //获取商品规格信息
             ItemsSpec itemsSpec = itemService.queryItemSpecById(s);
-            // TODO 整合redis后，商品购买数量从redis中获取
             totalAmount += itemsSpec.getPriceNormal() * buyCounts;
             realPayAmount += itemsSpec.getPriceDiscount();
 
@@ -133,6 +141,7 @@ public class OrderServiceImpl implements OrderService {
         OrderVO orderVO = new OrderVO();
         orderVO.setOrderId(orderId);
         orderVO.setMerchantOrdersVO(merchantOrdersVO);
+        orderVO.setShopcartList(toBeRemovedShopCartList);
 
         return orderVO;
     }
@@ -176,5 +185,21 @@ public class OrderServiceImpl implements OrderService {
         close.setOrderStatus(OrderStatusEnum.CLOSE.type);
         close.setCloseTime(new Date());
         orderStatusMapper.updateByPrimaryKeySelective(close);
+    }
+
+    /**
+     * 从redis中购物车获取商品，目的处理counts
+     * @param shopcartList
+     * @param specId
+     * @return
+     */
+    private ShopcartBO getBuyCountsFromShopcart(List<ShopcartBO> shopcartList,String specId){
+        for (ShopcartBO shopcartBO : shopcartList) {
+            if(shopcartBO.getSpecId().equals(specId)){
+                return shopcartBO;
+            }
+        }
+        return null;
+
     }
 }
