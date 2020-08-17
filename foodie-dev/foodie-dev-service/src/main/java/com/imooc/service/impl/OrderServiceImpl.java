@@ -117,6 +117,7 @@ public class OrderServiceImpl implements OrderService {
             //用户提交订单后，减少对应的库存
             itemService.decreaseItemSpecStock(s, buyCounts);
         }
+
         //订单表价格
         newOrder.setTotalAmount(totalAmount);
         newOrder.setRealPayAmount(realPayAmount);
@@ -141,7 +142,7 @@ public class OrderServiceImpl implements OrderService {
         OrderVO orderVO = new OrderVO();
         orderVO.setOrderId(orderId);
         orderVO.setMerchantOrdersVO(merchantOrdersVO);
-        orderVO.setShopcartList(toBeRemovedShopCartList);
+        orderVO.setToBeRemovedShopCartList(toBeRemovedShopCartList);
 
         return orderVO;
     }
