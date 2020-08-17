@@ -66,6 +66,7 @@ public class OrdersController extends BaseController {
         //清理覆盖下现有的redis汇总的购物数据
         shopcartList.removeAll(order.getToBeRemovedShopCartList());
         redisOperator.set(FOODIE_SHOPCART,JsonUtils.objectToJson(shopcartList));
+        
 
         //2.创建订单以后，移除购物车中已结算的商品
         CookieUtils.setCookie(request, response, FOODIE_SHOPCART, "");
