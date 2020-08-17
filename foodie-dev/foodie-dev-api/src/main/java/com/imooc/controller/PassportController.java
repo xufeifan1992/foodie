@@ -3,10 +3,7 @@ package com.imooc.controller;
 import com.imooc.pojo.Users;
 import com.imooc.pojo.bo.UserBO;
 import com.imooc.service.UserService;
-import com.imooc.utils.CookieUtils;
-import com.imooc.utils.IMOOCJSONResult;
-import com.imooc.utils.JsonUtils;
-import com.imooc.utils.MD5Utils;
+import com.imooc.utils.*;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.StringUtils;
@@ -19,10 +16,13 @@ import javax.servlet.http.HttpServletResponse;
 @Api(value = "注册登录接口", tags = "用于注册登录接口")
 @RestController
 @RequestMapping("passport")
-public class PassportController {
+public class PassportController extends BaseController{
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RedisOperator redisOperator;
 
     @ApiOperation(value = "校验用户名是否存在", notes = "校验用户名是否存在", httpMethod = "GET")
     @GetMapping("/usernameIsExist")
@@ -78,7 +78,8 @@ public class PassportController {
                 JsonUtils.objectToJson(users), true);
 
         //TODO 生成用户token，存入redis会话
-        //TODO 同步购物车数据
+        
+        synchShopcartDate(users.getId(),request,response);
 
         return IMOOCJSONResult.ok();
     }
@@ -109,7 +110,8 @@ public class PassportController {
                 JsonUtils.objectToJson(users), true);
 
         //TODO 生成用户token，存入redis会话
-        //TODO 同步购物车数据
+
+        synchShopcartDate(users.getId(),request,response);
 
         return IMOOCJSONResult.ok();
     }
@@ -133,5 +135,41 @@ public class PassportController {
         userResult.setUpdatedTime(null);
         userResult.setBirthday(null);
         return userResult;
+    }
+
+    /**
+     * 注册登录成功后，同步cookie和redis中的购物车数据
+     */
+    private void synchShopcartDate(String userId,
+                                   HttpServletRequest request,
+                                   HttpServletResponse response){
+        /**
+         * 1.如果redis中无数据, 如果cookie中的购物车为空，那么这个时候不做任何处理
+         *                    如果cookie中的购物车不为空，此时直接放入redis中
+         * 2.如果redis中有数据，如果cookie中的购物车为，那么直接把redis购物车覆盖本地rookie
+         *                   如果cookie中购物车不为空，如果cookie中的某个商品在redis中存在，则以cookie为主，删除redis中的数据，重新添加
+         * 3.同步到redis中取了以后，覆盖本地cookie购物车数据，保证本地购物车数据是同步的
+         */
+
+        //从redis中获取购物车
+        String shopcartRedisJson = redisOperator.get(FOODIE_SHOPCART + ":" + userId);
+
+
+        //从cookie中获取购物车
+        String shopcartStrCookie = CookieUtils.getCookieValue(request,FOODIE_SHOPCART,true);
+
+        if(StringUtils.isNotBlank(shopcartRedisJson)){
+            //redis为空，cookie不为空，直接把cookie中的数据放入redis
+            redisOperator.set(FOODIE_SHOPCART,shopcartStrCookie);
+        }else {
+            //redis不为空，cookie不为空，合并cookie和redis中的购物车数据，同一个商品覆盖redis
+            if(StringUtils.isNotBlank(shopcartStrCookie)){
+
+            }else {
+                //redis不为空，cookie为空，直接把redis覆盖cookie
+                CookieUtils.setCookie(request,response,FOODIE_SHOPCART,shopcartRedisJson,true);
+            }
+        }
+
     }
 }
