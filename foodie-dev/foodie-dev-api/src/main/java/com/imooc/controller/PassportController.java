@@ -3,12 +3,15 @@ package com.imooc.controller;
 import com.imooc.pojo.Users;
 import com.imooc.pojo.bo.ShopcartBO;
 import com.imooc.pojo.bo.UserBO;
+import com.imooc.pojo.vo.UsersVO;
 import com.imooc.service.UserService;
 import com.imooc.utils.*;
 import com.sun.org.apache.regexp.internal.RE;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import net.sf.jsqlparser.expression.UserVariable;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import springfox.documentation.spring.web.json.Json;
@@ -80,21 +83,30 @@ public class PassportController extends BaseController{
 
         Users users = userService.creatUser(userBO);
 
-        //实现用户redis会话
-        String uniqueToken = UUID.randomUUID().toString().trim();
-        redisOperator.set(REDIS_USER_TOKEN + ":" + users.getId(),uniqueToken);
-
-        
-        users.setUserUniqueToken(uniqueToken);
+        //实现用户redis会话--token
+        UsersVO usersVO = convertUsersVO(users);
 
 
         CookieUtils.setCookie(request, response, "user",
-                JsonUtils.objectToJson(users), true);
+                JsonUtils.objectToJson(usersVO), true);
         
         synchShopcartDate(users.getId(),request,response);
 
         return IMOOCJSONResult.ok();
     }
+
+
+    private UsersVO convertUsersVO(Users users){
+        //实现用户redis会话
+        String uniqueToken = UUID.randomUUID().toString().trim();
+        redisOperator.set(REDIS_USER_TOKEN + ":" + users.getId(),uniqueToken);
+
+        UsersVO usersVO = new UsersVO();
+        BeanUtils.copyProperties(users,usersVO);
+        usersVO.setUserUniqueToken(uniqueToken);
+        return usersVO;
+    }
+
 
     @ApiOperation(value = "登录接口", notes = "登录接口", httpMethod = "POST")
     @PostMapping("/login")
@@ -114,14 +126,11 @@ public class PassportController extends BaseController{
             return IMOOCJSONResult.errorMsg("用户名或密码不正确");
         }
 
-
-        //将返回对象部分属性设置为null
-        setNullProperty(users);
+        //实现用户redis会话--token
+        UsersVO usersVO = convertUsersVO(users);
 
         CookieUtils.setCookie(request, response, "user",
-                JsonUtils.objectToJson(users), true);
-
-        //TODO 生成用户token，存入redis会话
+                JsonUtils.objectToJson(usersVO), true);
 
         synchShopcartDate(users.getId(),request,response);
 
@@ -134,11 +143,15 @@ public class PassportController extends BaseController{
                                  HttpServletRequest request,
                                  HttpServletResponse response) throws Exception {
 
+        //清除用户的相关信息cookie
         CookieUtils.deleteCookie(request,response,"user");
 
         //用户退出登录，需要清空购物车
         //分布式会话中需要清除用户数据
         CookieUtils.deleteCookie(request,response,FOODIE_SHOPCART);
+
+        //清空token
+        redisOperator.del(REDIS_USER_TOKEN + ":" + userId);
 
         return IMOOCJSONResult.ok();
     }
