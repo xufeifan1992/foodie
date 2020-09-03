@@ -153,6 +153,8 @@ public class PassportController extends BaseController{
         //清空token
         redisOperator.del(REDIS_USER_TOKEN + ":" + userId);
 
+        
+
         return IMOOCJSONResult.ok();
     }
 
