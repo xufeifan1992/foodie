@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Api(value = "注册登录接口", tags = "用于注册登录接口")
 @RestController
@@ -79,10 +80,16 @@ public class PassportController extends BaseController{
 
         Users users = userService.creatUser(userBO);
 
+        //实现用户redis会话
+        String uniqueToken = UUID.randomUUID().toString().trim();
+        redisOperator.set(REDIS_USER_TOKEN + ":" + users.getId(),uniqueToken);
+
+        
+        users.setUserUniqueToken(uniqueToken);
+
+
         CookieUtils.setCookie(request, response, "user",
                 JsonUtils.objectToJson(users), true);
-
-        //TODO 生成用户token，存入redis会话
         
         synchShopcartDate(users.getId(),request,response);
 

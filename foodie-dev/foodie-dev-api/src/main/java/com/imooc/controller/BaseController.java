@@ -19,6 +19,8 @@ public class BaseController {
     //支付中心调用地址
     public static final String paymentUrl = "http://payment.t.mykewang.com/foodie-payment/payment/createMerchantOrder";
 
+    public static final String REDIS_USER_TOKEN = "redis_user_token";
+
     @Autowired
     private MyOrdersService myOrdersService;
 
