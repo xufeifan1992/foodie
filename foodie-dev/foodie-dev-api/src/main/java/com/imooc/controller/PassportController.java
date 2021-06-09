@@ -96,17 +96,6 @@ public class PassportController extends BaseController{
     }
 
 
-    private UsersVO convertUsersVO(Users users){
-        //实现用户redis会话
-        String uniqueToken = UUID.randomUUID().toString().trim();
-        redisOperator.set(REDIS_USER_TOKEN + ":" + users.getId(),uniqueToken);
-
-        UsersVO usersVO = new UsersVO();
-        BeanUtils.copyProperties(users,usersVO);
-        usersVO.setUserUniqueToken(uniqueToken);
-        return usersVO;
-    }
-
 
     @ApiOperation(value = "登录接口", notes = "登录接口", httpMethod = "POST")
     @PostMapping("/login")

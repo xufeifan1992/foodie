@@ -106,14 +106,16 @@ public class CenterUserController extends BaseController {
                     e.printStackTrace();
                 }
             }
-
+            //获取服务器地址
             String imageServerUrl = fileUpload.getImageServerUrl();
+            //由于浏览器缓存的情况，加上时间戳来保证更新图片
             String finalUserFaceUrl = imageServerUrl + uploadPathPrefix + "?t=" + DateUtil.getCurrentDateString(DateUtil.DATE_PATTERN);
-
+            //更新用户头像
             Users userResult = centerUserService.updateUserFace(userId, finalUserFaceUrl);
             CookieUtils.setCookie(request, response, "user", JsonUtils.objectToJson(userResult), true);
 
-            //TODO 后续增加令牌token，会整合进redis分布式会话
+            //增加令牌token，会整合进redis分布式会话
+            convertUsersVO(userResult);
 
         } else {
             return IMOOCJSONResult.errorMsg("文件不能为空");
@@ -138,10 +140,11 @@ public class CenterUserController extends BaseController {
 
         Users userResult = centerUserService.updateUserInfo(userId, centerUserBO);
 
-        setNullProperty(userResult);
+        //setNullProperty(userResult);
         CookieUtils.setCookie(request, response, "user", JsonUtils.objectToJson(userResult), true);
 
-        //TODO 后续增加令牌token，会整合进redis分布式会话
+        //增加令牌token，会整合进redis分布式会话
+        convertUsersVO(userResult);
 
         return IMOOCJSONResult.ok(userResult);
     }
